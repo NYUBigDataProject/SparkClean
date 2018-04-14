@@ -1,6 +1,6 @@
 # Integrity Constraint Sample Codes
 
-###Use a json file to define integrety
+### Use a json file to define integrety
 
 ~~~json
 {
@@ -49,7 +49,8 @@ There're four rows violates the functional dependency
 ### Check violations again
 
 ~~~python
->>> corrector.check_violations()                                                <code.df_ic.ICViolationCorrector object at 0x1069c2390>
+>>> corrector.check_violations()                                                
+<code.df_ic.ICViolationCorrector object at 0x1069c2390>
 ~~~
 ~~~
 >>> corrector.display_violation_rows()
