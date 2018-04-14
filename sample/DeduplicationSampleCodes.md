@@ -43,6 +43,8 @@
 ~~~python
 >>> colName, clusters = de.keyCollisionClustering("city")
 >>> de.preview(clusters, 2)
+~~~
+~~~
 ------------ Cluster 0 -------------------
 Name: Bogota, Count:1
 Name: Bogotá, Count:1
@@ -64,6 +66,8 @@ Note that you can also apply changes to the clusters before resolving them in an
 >>> de.resolve(colName, clusters)
 Total rows affected: 5 rows
 >>> de._tf.show()
+~~~
+~~~
 +---------------+--------+----------+-----------+
 |           city| country|population|         id|
 +---------------+--------+----------+-----------+
