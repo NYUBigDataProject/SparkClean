@@ -2,7 +2,8 @@ from IPython.display import display, HTML
 from pyspark.sql.session import SparkSession
 from sparkclean.utilities import *
 from sparkclean.df_transformer import DataFrameTransformer
-from sparkclean.df_deduplicator import DataFrameDeduplicator 
+from sparkclean.df_deduplicator import DataFrameDeduplicator
+from sparkclean.df_outliers import OutlierDetector 
 import os
 
 # -*- coding: utf-8 -*-
