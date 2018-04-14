@@ -38,7 +38,7 @@
 +-------+-----------+-----+-----+
 
 ~~~
-There're four rows violates the functional dependency
+There're four rows violates the functional dependency "ZIPCode --> City, State"
 
 ### Correct them
 
@@ -61,6 +61,6 @@ There're four rows violates the functional dependency
 |  90028|  HOLLYWOOD|   CA|   25|
 +-------+-----------+-----+-----+
 
-# These two can't be removed because their count are same.
 ~~~
 
+These two can't be removed because their count are same.
