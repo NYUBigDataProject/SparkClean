@@ -18,8 +18,6 @@
         return df
  
 >>> df = loadDemo()
-
-2018-04-14 15:49:11 WARN  ObjectStore:568 - Failed to get database global_temp, returning NoSuchObjectException
 >>> de = sparkclean.DataFrameDeduplicator(df)
 >>> de._tf.show()
 ~~~
