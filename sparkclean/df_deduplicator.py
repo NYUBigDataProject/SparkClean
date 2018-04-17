@@ -227,7 +227,6 @@ class DataFrameDeduplicator:
                 fixs[s] = info
             return (multiFingerPrinter, fixs, ids)
         clusters = rdd.map(multiFingerPrinterMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
-        print(clusters.collect())
         objects = clusters.map(previewMapper)
         return fixColNames, objects
 
