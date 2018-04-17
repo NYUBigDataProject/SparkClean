@@ -10,6 +10,7 @@ from sparkclean import DataFrameTransformer
 import re, string
 from unidecode import unidecode
 from collections import Counter
+from collections import defaultdict
 
 
 class DataFrameDeduplicator:
@@ -22,6 +23,7 @@ class DataFrameDeduplicator:
         self._tf._assert_cols_in_df(columns_provided=[colName], columns_df=self._tf._df.columns)
         rdd = self._tf._df.select(["id", colName]).rdd.map(list)
         def getFingerPrint(s):
+            s = str(s)
             PUNCTUATION = re.compile('[%s]' % re.escape(string.punctuation))
             # preprocess
             preprocessed = PUNCTUATION.sub('', s.strip().lower())
@@ -76,7 +78,7 @@ class DataFrameDeduplicator:
             applyToTransformer(obj)
         totalRowsAffected = objects.map(lambda x:x[1][2]).reduce(lambda x,y:x+y)
         print("Total rows affected: %d rows" % totalRowsAffected)
-    def LocalitySensitiveHashing(self, colName, blockSize=6, method = "levenshtein", threshold = 0.81):
+    def localitySensitiveHashing(self, colName, blockSize=6, method = "levenshtein", threshold = 0.81):
         """
         colName: the column to be clustered
         blockSize: size of blocking
@@ -146,7 +148,7 @@ class DataFrameDeduplicator:
             n = len(keys)
             for i in range(n):
                 for j in range(i+1,n):
-                    if sim(keys[i],keys[j])>threshold:
+                    if sim(str(keys[i]),str(keys[j]))>threshold:
                         newCounter = Counter()
                         newCounter[keys[i]] = d[keys[i]]
                         newCounter[keys[j]] = d[keys[j]]
@@ -169,6 +171,7 @@ class DataFrameDeduplicator:
         =>
         res: city|country|population|id|_city|_country|_population|_id
         """
+        self._tf._assert_cols_in_df(columns_provided=colNames, columns_df=self._tf._df.columns)
         tf = self._tf
         schema = tf._df.schema
         tf_copy = DataFrameTransformer(tf._df)
@@ -182,7 +185,56 @@ class DataFrameDeduplicator:
         :return [(oldColumnName, newColumnName)] from dataframe schema for rename_cols in df_transformer
         """
         return list(map(lambda x:(x.name, "_"+x.name), schema))
-    
+    def recordMatching(self, matchColNames, fixColNames):
+        """
+        matchColNames: colNames used for keyCollision clustering
+        fixColNames: colNames we try to fix
+        """ 
+        self._tf._assert_cols_in_df(columns_provided=matchColNames, columns_df=self._tf._df.columns)
+        self._tf._assert_cols_in_df(columns_provided=fixColNames, columns_df=self._tf._df.columns) 
+        colNames = list(set(matchColNames + fixColNames))
+        colNameIndex = dict(zip(colNames,range(1,1+len(colNames))))
+        rdd = self._tf._df.select(["id"]+colNames).rdd.map(list)
+        def getFingerPrint(s):
+            s = str(s)
+            PUNCTUATION = re.compile('[%s]' % re.escape(string.punctuation))
+            # preprocess
+            preprocessed = PUNCTUATION.sub('', s.strip().lower())
+            # unique_preserving_order
+            seen = set()
+            seen_add = seen.add
+            unique = [x for x in preprocessed if not (x in seen or seen_add(x))]
+            # latinize 
+            latinized = unidecode(''.join(unique))
+            return latinized
+        def multiFingerPrinterMapper(x):
+            _id = x[0]
+            multiFingerPrinter = []
+            for s in matchColNames:
+                index = colNameIndex[s]
+                multiFingerPrinter.append(getFingerPrint(x[index]))
+            multiFingerPrinter = tuple(multiFingerPrinter)
+            return (multiFingerPrinter, x)
+        def previewMapper(l):
+            multiFingerPrinter, raws = l
+            ids = list(map(lambda x:x[0], raws))
+            fixs = dict()
+            for s in fixColNames:
+                index = colNameIndex[s]
+                words = list(map(lambda x:x[index], raws))
+                d = Counter(words)
+                info = (d.most_common(1)[0][0],d.most_common(1)[0][1],len(raws))
+                fixs[s] = info
+            return (multiFingerPrinter, fixs, ids)
+        clusters = rdd.map(multiFingerPrinterMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
+        print(clusters.collect())
+        objects = clusters.map(previewMapper)
+        return fixColNames, objects
+
+
+        
+
+
 
 
 
