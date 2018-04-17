@@ -46,7 +46,7 @@ class DataFrameDeduplicator:
             return (fingerPrintMapper, info, d, ids)
 
         clusters = rdd.map(fingerPrintMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
-        objects = clusters.map(previewMapper)
+        objects = clusters.map(previewMapper).filter(lambda x:len(x[2].keys())>1)
         return colName, objects
     def preview(self, objects, num):
         """Preview the obejects pending to be changed
@@ -126,7 +126,7 @@ class DataFrameDeduplicator:
             n = len(fingerPrint)
             res = []
             if n > blockSize:
-                for i in range(n):
+                for i in range(0,n,blockSize):
                     if i+blockSize>n:break
                     res.append((fingerPrint[i:i+blockSize],l))
             else:
@@ -156,9 +156,33 @@ class DataFrameDeduplicator:
             return res
 
         clusters = rdd.map(fingerPrintMapper).flatMap(LSHflatMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
-        objects = clusters.map(previewMapper).flatMap(thresholdFlatMapper)
+        objects = clusters.map(previewMapper).flatMap(thresholdFlatMapper).filter(lambda x:len(x[2].keys())>1)
         
         return colName, objects
+    def buildPairs(self,colNames):
+        """
+        :return a dataframe of pairs for compairing similarity
+
+        Example.   
+
+        df: city| country|population
+        =>
+        res: city|country|population|id|_city|_country|_population|_id
+        """
+        tf = self._tf
+        schema = tf._df.schema
+        tf_copy = DataFrameTransformer(tf._df)
+        tf_copy.rename_col(self.colNameMapper(schema))
+        res = tf._df.join(tf_copy._df, tf._df.id < tf_copy._df._id)
+        colNames += ["id"]
+        pick = colNames + list(map(lambda x:"_"+x, colNames))
+        return res.select(pick)
+    def colNameMapper(self, schema):
+        """
+        :return [(oldColumnName, newColumnName)] from dataframe schema for rename_cols in df_transformer
+        """
+        return list(map(lambda x:(x.name, "_"+x.name), schema))
+    
 
 
 
