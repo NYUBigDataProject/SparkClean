@@ -11,6 +11,7 @@ import re, string
 from unidecode import unidecode
 from collections import Counter
 from collections import defaultdict
+from matplotlib.colors import same_color
 
 
 class DataFrameDeduplicator:
@@ -50,19 +51,22 @@ class DataFrameDeduplicator:
         clusters = rdd.map(fingerPrintMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
         objects = clusters.map(previewMapper).filter(lambda x:len(x[2].keys())>1)
         return colName, objects
-    def preview(self, objects, num):
+    def preview(self, colName, objects, num):
         """Preview the obejects pending to be changed
            objects: "clusters" by fingerprint, returned from keyCollisionClustering
            num: the number of objects you want to preview.
         """
-        samples = objects.take(num)
+        if num > 0:
+            samples = objects.take(num)
+        else:
+            samples = objects.collect()
         for i,obj in enumerate(samples):
             fingerPrintMapper, info, d, ids = obj
             print("------------ Cluster %d -------------------" % i) 
             for key,count in d.most_common():
-                print("Name: %s, Count:%d" %(key,count))
+                print("colName: %s| Item: %s, Count:%d" %(colName,key,count))
+            print("colName: %s|"%colName," Will be changed to \"%s\", takes %d/%d" % info)
             print("")
-            print("Will be changed to \"%s\", takes %d/%d" % info)
     def resolve(self, colName, objects):
         """Resolve the changes
            colName: the column to apply this change
@@ -223,12 +227,35 @@ class DataFrameDeduplicator:
                 index = colNameIndex[s]
                 words = list(map(lambda x:x[index], raws))
                 d = Counter(words)
-                info = (d.most_common(1)[0][0],d.most_common(1)[0][1],len(raws))
-                fixs[s] = info
+                info = (d.most_common(1)[0][0],d.most_common(1)[0][1],len(raws),d)
+                if info[1]!=info[2]:
+                    fixs[s] = info
             return (multiFingerPrinter, fixs, ids)
         clusters = rdd.map(multiFingerPrinterMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
-        objects = clusters.map(previewMapper)
-        return fixColNames, objects
+        objects = clusters.map(previewMapper).filter(lambda x:len(x[1].keys())>0)
+        return fixColNames,objects
+    def previewReords(self, fixColNames, objects, num):
+        """Preview the obejects pending to be changed
+           fixColNames: the columns to be fixed, actually not needed in this function, but just want to be symetry with one col case
+           objects: "clusters" by multi fingerprint, returned from recordMatching
+           num: the number of objects you want to preview.
+        """
+        if num > 0:
+            samples = objects.take(num)
+        else:
+            samples = objects.collect()
+        for i in range(len(samples)):
+            multiFingerPrinter, fixs, ids = samples[i]
+            print("------------ Cluster %d -------------------" % i) 
+            print("Record id:",ids)
+            for col in fixs.keys():
+                Item, Count, Total, d = fixs[col]
+                for key,count in d.most_common():
+                    print("colName: %s| Item: %s, Count:%d" %(col,key,count))
+                print("colName: %s| Will be changed to \"%s\", takes %d/%d" % (col, Item, Count, Total))
+            print("")
+    
+
 
 
         

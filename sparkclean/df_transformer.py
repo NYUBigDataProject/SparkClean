@@ -1420,13 +1420,16 @@ class DataFrameTransformer:
 
     def addPrimaryKey(self, keyname="id", func=monotonically_increasing_id):
         """
-        GenerateIds for dataframe.
+        Generate Ids for dataframe.
         """
         self._assert_type_str(keyname, "keyname"), "Error: keyname should be a string"
         self._df = self._df.withColumn(keyname, func())
         self._add_transformation() 
         return self
-
+    
+    
+    
+    
 
 
 
