@@ -15,7 +15,10 @@ from matplotlib.colors import same_color
 
 
 class DataFrameDeduplicator:
-    """DataFrameDeduplicater is a class to deduplicate in dataFrames"""
+    """DataFrameDeduplicater is a class to deduplicate in dataFrames
+       It will generate "id" to identify every Row, so if a DataFrame already include "id" column, 
+       remove it before using this class 
+    """
     def __init__(self, df):
         self._tf = DataFrameTransformer(df)
         self._tf.addPrimaryKey()
@@ -51,7 +54,7 @@ class DataFrameDeduplicator:
         clusters = rdd.map(fingerPrintMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
         objects = clusters.map(previewMapper).filter(lambda x:len(x[2].keys())>1)
         return colName, objects
-    def preview(self, colName, objects, num):
+    def preview(self, colName, objects, num=-1):
         """Preview the obejects pending to be changed
            objects: "clusters" by fingerprint, returned from keyCollisionClustering
            num: the number of objects you want to preview.
@@ -234,7 +237,7 @@ class DataFrameDeduplicator:
         clusters = rdd.map(multiFingerPrinterMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
         objects = clusters.map(previewMapper).filter(lambda x:len(x[1].keys())>0)
         return fixColNames,objects
-    def previewReords(self, fixColNames, objects, num):
+    def previewReords(self, fixColNames, objects, num=-1):
         """Preview the obejects pending to be changed
            fixColNames: the columns to be fixed, actually not needed in this function, but just want to be symetry with one col case
            objects: "clusters" by multi fingerprint, returned from recordMatching
@@ -252,8 +255,31 @@ class DataFrameDeduplicator:
                 Item, Count, Total, d = fixs[col]
                 for key,count in d.most_common():
                     print("colName: %s| Item: %s, Count:%d" %(col,key,count))
-                print("colName: %s| Will be changed to \"%s\", takes %d/%d" % (col, Item, Count, Total))
+                print("colName: %s| Change: Will be changed to \"%s\", takes %d/%d" % (col, Item, Count, Total))
             print("")
+    def resolveRecords(self, fixColNames, objects):
+        """
+        fixColNames, objects returned by recordMatching
+        """
+        totalRowsAffected = 0
+        samples = objects.collect()
+        for i in range(len(samples)):
+            multiFingerPrinter, fixs, ids = samples[i]
+            totalRowsAffected += len(ids)
+            fixs = list(fixs.items())
+            for fix in fixs:
+                update_col = fix[0]
+                new_value = fix[1][0]
+                id_list = ids 
+                id_col = "id"
+                self._tf.replace_by_id(new_value, update_col, id_list, id_col)
+        print("Total rows affected: %d rows" % totalRowsAffected)
+    
+    def show(self, n=10, truncate=True,  withId = False):
+        if withId:
+            return self._tf._df.show(n, truncate)
+        else:
+            return self._tf._df.drop("id").show(n, truncate)
     
 
 

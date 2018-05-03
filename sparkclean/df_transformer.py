@@ -1427,6 +1427,37 @@ class DataFrameTransformer:
         self._add_transformation() 
         return self
     
+    def replace_by_id(self, new_value, update_col, id_list, id_col = "id"):
+        """
+        replace the rows identified by id_col and id_list,
+        change the value in the update_col to be new_value
+        """
+        assert isinstance(id_list, list), "Error: indices must a list"
+        id_list = set(id_list)
+        dataType = self._df.schema[update_col].dataType
+        tempName = "_" + update_col
+        def my_replace( rowId, val_in_update_col):
+            if rowId in id_list:
+                return new_value
+            else:
+                return val_in_update_col
+        my_replace_udf = udf(my_replace, dataType)
+        # Add tempCol
+        self._df = self._df.withColumn( tempName, my_replace_udf(id_col, update_col))
+        # Rename
+        self._df = self._df.drop(update_col).withColumnRenamed( tempName, update_col)
+        self._add_transformation() 
+        return self
+
+
+
+
+    
+
+    
+
+
+    
     
     
     
