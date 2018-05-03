@@ -16,8 +16,8 @@ from matplotlib.colors import same_color
 
 class DataFrameDeduplicator:
     """DataFrameDeduplicater is a class to deduplicate in dataFrames
-       It will generate "id" to identify every Row, so if a DataFrame already include "id" column, 
-       remove it before using this class 
+       It will generate "id" to identify every Row, so if a DataFrame already include "id" column,
+       remove it before using this class
     """
     def __init__(self, df):
         self._tf = DataFrameTransformer(df)
@@ -35,11 +35,11 @@ class DataFrameDeduplicator:
             seen = set()
             seen_add = seen.add
             unique = [x for x in preprocessed if not (x in seen or seen_add(x))]
-            # latinize 
+            # latinize
             latinized = unidecode(''.join(unique))
             return latinized
         def fingerPrintMapper(x):
-            _id, _col = x 
+            _id, _col = x
             _s = str(_col)
             fingerPrint = getFingerPrint(_s)
             return (fingerPrint, [_id, _col])
@@ -65,7 +65,7 @@ class DataFrameDeduplicator:
             samples = objects.collect()
         for i,obj in enumerate(samples):
             fingerPrintMapper, info, d, ids = obj
-            print("------------ Cluster %d -------------------" % i) 
+            print("------------ Cluster %d -------------------" % i)
             for key,count in d.most_common():
                 print("colName: %s| Item: %s, Count:%d" %(colName,key,count))
             print("colName: %s|"%colName," Will be changed to \"%s\", takes %d/%d" % info)
@@ -81,7 +81,9 @@ class DataFrameDeduplicator:
             str_to_replace = info[0]
             list_str = list(d.keys())
             self._tf.lookup(colName, str_to_replace, list_str)
-        for obj in objList:
+        for i,obj in enumerate(objList):
+            if i % 100 == 0:
+                print("Resolving cluster %d/%d" %(i,len(objList)))
             applyToTransformer(obj)
         totalRowsAffected = objects.map(lambda x:x[1][2]).reduce(lambda x,y:x+y)
         print("Total rows affected: %d rows" % totalRowsAffected)
@@ -122,11 +124,11 @@ class DataFrameDeduplicator:
             seen = set()
             seen_add = seen.add
             unique = [x for x in preprocessed if not (x in seen or seen_add(x))]
-            # latinize 
+            # latinize
             latinized = unidecode(''.join(unique))
             return latinized
         def fingerPrintMapper(x):
-            _id, _col = x 
+            _id, _col = x
             _s = str(_col)
             fingerPrint = getFingerPrint(_s)
             return (fingerPrint, [_id, _col])
@@ -161,18 +163,18 @@ class DataFrameDeduplicator:
                         newCounter[keys[j]] = d[keys[j]]
                         cand, freq = newCounter.most_common(1)[0]
                         newInfo = (cand, freq, sum(newCounter.values()))
-                        res.append((fingerPrintMapper, newInfo, newCounter, ids)) 
+                        res.append((fingerPrintMapper, newInfo, newCounter, ids))
             return res
 
         clusters = rdd.map(fingerPrintMapper).flatMap(LSHflatMapper).groupByKey().mapValues(list).filter(lambda x:len(x[1])>1)
         objects = clusters.map(previewMapper).flatMap(thresholdFlatMapper).filter(lambda x:len(x[2].keys())>1)
-        
+
         return colName, objects
     def buildPairs(self,colNames):
         """
         :return a dataframe of pairs for compairing similarity
 
-        Example.   
+        Example.
 
         df: city| country|population
         =>
@@ -196,9 +198,9 @@ class DataFrameDeduplicator:
         """
         matchColNames: colNames used for keyCollision clustering
         fixColNames: colNames we try to fix
-        """ 
+        """
         self._tf._assert_cols_in_df(columns_provided=matchColNames, columns_df=self._tf._df.columns)
-        self._tf._assert_cols_in_df(columns_provided=fixColNames, columns_df=self._tf._df.columns) 
+        self._tf._assert_cols_in_df(columns_provided=fixColNames, columns_df=self._tf._df.columns)
         colNames = list(set(matchColNames + fixColNames))
         colNameIndex = dict(zip(colNames,range(1,1+len(colNames))))
         rdd = self._tf._df.select(["id"]+colNames).rdd.map(list)
@@ -211,7 +213,7 @@ class DataFrameDeduplicator:
             seen = set()
             seen_add = seen.add
             unique = [x for x in preprocessed if not (x in seen or seen_add(x))]
-            # latinize 
+            # latinize
             latinized = unidecode(''.join(unique))
             return latinized
         def multiFingerPrinterMapper(x):
@@ -249,7 +251,7 @@ class DataFrameDeduplicator:
             samples = objects.collect()
         for i in range(len(samples)):
             multiFingerPrinter, fixs, ids = samples[i]
-            print("------------ Cluster %d -------------------" % i) 
+            print("------------ Cluster %d -------------------" % i)
             print("Record id:",ids)
             for col in fixs.keys():
                 Item, Count, Total, d = fixs[col]
@@ -264,27 +266,29 @@ class DataFrameDeduplicator:
         totalRowsAffected = 0
         samples = objects.collect()
         for i in range(len(samples)):
+            if i % 100 == 0:
+                print("Resolving cluster %d/%d" %(i,len(samples)))
             multiFingerPrinter, fixs, ids = samples[i]
             totalRowsAffected += len(ids)
             fixs = list(fixs.items())
             for fix in fixs:
                 update_col = fix[0]
                 new_value = fix[1][0]
-                id_list = ids 
+                id_list = ids
                 id_col = "id"
                 self._tf.replace_by_id(new_value, update_col, id_list, id_col)
         print("Total rows affected: %d rows" % totalRowsAffected)
-    
+
     def show(self, n=10, truncate=True,  withId = False):
         if withId:
             return self._tf._df.show(n, truncate)
         else:
             return self._tf._df.drop("id").show(n, truncate)
-    
 
 
 
-        
+
+
 
 
 
