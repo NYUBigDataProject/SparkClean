@@ -923,76 +923,6 @@ class DataFrameTransformer:
 
         return self
 
-    def operation_in_type(self, parameters):
-        """ This function makes operations in a columnType of dataframe. It is well know that DataFrames are consistent,
-        but it in this context, operation are based in types recognized by the dataframe analyzer, types are identified
-        according if the value is parsable to int or float, etc.
-
-        This functions makes the operation in column elements that are recognized as the same type that the data_type
-        argument provided in the input function.
-
-        Columns provided in list of tuples cannot be repeated
-        :param parameters   List of columns in the following form: [(columnName, data_type, func),
-                                                                    (columnName1, dataType1, func1)]
-        :return None
-        """
-
-        def check_data_type(value):
-
-            try:  # Try to parse (to int) register value
-                int(value)
-                # Add 1 if suceed:
-                return 'integer'
-            except ValueError:
-                try:
-                    # Try to parse (to float) register value
-                    float(value)
-                    # Add 1 if suceed:
-                    return 'float'
-                except ValueError:
-                    # Then, it is a string
-                    return 'string'
-            except TypeError:
-                return 'null'
-
-        types = {type('str'): 'string', type(1): 'int', type(1.0): 'float'}
-
-        exprs = []
-        for column, data_type, func in parameters:
-            # Cheking if column name is string datatype:
-            self._assert_type_str(column, "columnName")
-            # Checking if column exists in dataframe:
-            assert column in self._df.columns, \
-                "Error: Column %s specified as columnName argument does not exist in dataframe" % column
-            # Checking if column has a valid datatype:
-            assert (data_type in ['integer', 'float', 'string',
-                                  'null']), \
-                "Error: data_type only can be one of the followings options: integer, float, string, null."
-            # Checking if func parameters is func data_type or None
-            assert isinstance(func, type(None)) or isinstance(func, type(lambda x: x)), \
-                "func argument must be a function or NoneType"
-
-            if 'function' in str(type(func)):
-                func_udf = udf(lambda x: func(x) if check_data_type(x) == data_type else x)
-
-            if isinstance(func, str) or isinstance(func, int) or isinstance(func, float):
-                assert [x[1] in types[type(func)] for x in filter(lambda x: x[0] == columnName, self._df.dtypes)][
-                    0], \
-                    "Error: Column of operation and func argument must be the same global type. " \
-                    "Check column type by df.printSchema()"
-                func_udf = udf(lambda x: func if check_data_type(x) == data_type else x)
-
-            if func is None:
-                func_udf = udf(lambda x: None if check_data_type(x) == data_type else x)
-
-            exprs.append(func_udf(col(column)).alias(column))
-
-        col_not_provided = [x for x in self._df.columns if x not in [column[0] for column in parameters]]
-
-        self._df = self._df.select(col_not_provided + [*exprs])
-        self._add_transformation()  # checkpoint in case
-
-        return self
 
     def row_filter_by_type(self, column_name, type_to_delete):
         """This function has built in order to deleted some type of dataframe """
@@ -1034,51 +964,6 @@ class DataFrameTransformer:
 
         return self
 
-    def undo_vec_assembler(self, column, feature_names):
-        """This function unpack a column of list arrays into different columns.
-        +-------------------+-------+
-        |           features|columna|
-        +-------------------+-------+
-        |[11, 2, 1, 1, 1, 1]|   hola|
-        | [0, 1, 1, 1, 1, 1]|  salut|
-        |[31, 1, 1, 1, 1, 1]|  hello|
-        +-------------------+-------+
-                      |
-                      |
-                      V
-        +-------+---+---+-----+----+----+---+
-        |columna|one|two|three|four|five|six|
-        +-------+---+---+-----+----+----+---+
-        |   hola| 11|  2|    1|   1|   1|  1|
-        |  salut|  0|  1|    1|   1|   1|  1|
-        |  hello| 31|  1|    1|   1|   1|  1|
-        +-------+---+---+-----+----+----+---+
-        """
-        # Check if column argument a string datatype:
-        self._assert_type_str(column, "column")
-
-        assert (column in self._df.columns), "Error: column specified does not exist in dataFrame."
-
-        assert (isinstance(feature_names, list)), "Error: feature_names must be a list of strings."
-        # Function to extract value from list column:
-        func = udf(lambda x, index: x[index])
-
-        exprs = []
-
-        # Recursive function:
-        def exprs_func(column, exprs, feature_names, index):
-            if index == 0:
-                return [func(col(column), lit(index)).alias(feature_names[index])]
-            else:
-                return exprs_func(column, exprs, feature_names, index - 1) + [
-                    func(col(column), lit(index)).alias(feature_names[index])]
-
-        self._df = self._df.select(
-            [x for x in self._df.columns] + [*exprs_func(column, exprs, feature_names, len(feature_names) - 1)]).drop(
-            column)
-        self._add_transformation()  # checkpoint in case
-
-        return self
 
     def scale_vec_col(self, columns, name_output_col):
         """
