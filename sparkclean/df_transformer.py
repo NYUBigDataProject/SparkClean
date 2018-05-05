@@ -965,6 +965,7 @@ class DataFrameTransformer:
         return self
 
 
+
     def scale_vec_col(self, columns, name_output_col):
         """
         This function groups the columns specified and put them in a list array in one column, then a scale
@@ -1333,6 +1334,12 @@ class DataFrameTransformer:
         self._df = self._df.drop(update_col).withColumnRenamed( tempName, update_col)
         self._add_transformation() 
         return self
+    
+    def get_dataframe(self):
+        """
+        return the dataframe you have cleaned.
+        """
+        return self._df
 
 
 

@@ -284,6 +284,24 @@ class DataFrameDeduplicator:
             return self._tf._df.show(n, truncate)
         else:
             return self._tf._df.drop("id").show(n, truncate)
+    
+    def remove_duplicates(self, cols=None):
+        """
+        :param cols: List of columns to make the comparison, this only  will consider this subset of columns,
+        for dropping duplicates. The default behavior will only drop the identical rows.
+        :return: Return a new DataFrame with duplicate rows removed
+        """
+        assert isinstance(cols, list), "Error, cols argument provided must be a list."
+
+        self._tf.remove_duplicates(cols)
+
+        return self
+    
+    def get_dataframe(self):
+        """
+        return the dataframe you have cleaned.
+        """
+        return self._tf._df.drop("id")
 
 
 
