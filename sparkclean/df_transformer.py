@@ -1341,6 +1341,32 @@ class DataFrameTransformer:
         """
         return self._df
 
+    def addCount(self, col_name="counts", initial=0):
+        self._assert_type_str(col_name, "col_name")
+        self._assert_type_int_or_float(initial, "initial")
+        self._df = self._df.withColumn(col_name, lit(initial))
+        self._add_transformation()
+        return self
+
+    def replace_sub_df(self, df_to_replace, df, lhs_attrs):
+        assert isinstance(df_to_replace, pyspark.sql.dataframe.DataFrame), "Error: the first input must be a dataframe"
+        assert isinstance(df, pyspark.sql.dataframe.DataFrame), "Error: the second input must be a dataframe"
+        assert df_to_replace.schema.names == df.schema.names, "Error: the two input dataframes don't match on schema"
+        to_change = self._df
+        keys = df_to_replace.select(lhs_attrs).distinct().collect()
+        for i in range(0, len(keys)):
+            for j, c in enumerate(lhs_attrs):
+                to_change = to_change.where(col(c) == keys[i][j])
+        no_change = self._df.subtract(to_change)
+        df_to_replace = df_to_replace.collect()
+        df = df.collect()
+        for k in range(0, len(df[0])):
+            udf = UserDefinedFunction(lambda x: df[0][k] if x == df_to_replace[0][k] else x)
+            col_replace = df[0].__fields__[k]
+            to_change = to_change.select(*[udf(column).alias(col_replace) if column == col_replace \
+                                         else column for column in to_change.columns])
+        self._add_transformation()
+        self._df = to_change.union(no_change)
 
 
 
