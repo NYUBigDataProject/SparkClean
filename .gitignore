@@ -2,3 +2,5 @@
 checkPointFolder/
 derby.log
 metastore_db/
+test/__pycache__/
+sparkclean/__pycache__/
