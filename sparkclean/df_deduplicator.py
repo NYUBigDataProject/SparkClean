@@ -70,21 +70,36 @@ class DataFrameDeduplicator:
                 print("colName: %s| Item: %s, Count:%d" %(colName,key,count))
             print("colName: %s|"%colName," Will be changed to \"%s\", takes %d/%d" % info)
             print("")
-    def resolve(self, colName, objects):
+    def resolve(self, colName, objects, optimized = False):
         """Resolve the changes
            colName: the column to apply this change
            objects: "clusters" by fingerprint, returned from keyCollisionClustering
         """
         objList = objects.collect()
-        def applyToTransformer(x):
-            fingerPrintMapper, info, d, ids = x
-            str_to_replace = info[0]
-            list_str = list(d.keys())
-            self._tf.lookup(colName, str_to_replace, list_str)
-        for i,obj in enumerate(objList):
-            if i % 100 == 0:
-                print("Resolving cluster %d/%d" %(i,len(objList)))
-            applyToTransformer(obj)
+        if not optimized:
+            def applyToTransformer(x):
+                fingerPrintMapper, info, d, ids = x
+                str_to_replace = info[0]
+                list_str = list(d.keys())
+                self._tf.lookup(colName, str_to_replace, list_str)
+            for i,obj in enumerate(objList):
+                if i % 100 == 0:
+                    print("Resolving cluster %d/%d" %(i,len(objList)))
+                applyToTransformer(obj)
+        else:
+            def merge(objList):
+                str_to_replace = dict()
+                for x in objList:
+                    fingerPrintMapper, info, d, ids = x
+                    change_to = info[0]
+                    list_str = list(d.keys())
+                    for s in list_str:
+                        str_to_replace[change_to] = s
+                return str_to_replace
+            str_to_replace = merge(objList)
+            self._tf.lookup(colName, str_to_replace, None)
+
+
         totalRowsAffected = objects.map(lambda x:x[1][2]).reduce(lambda x,y:x+y)
         print("Total rows affected: %d rows" % totalRowsAffected)
     def localitySensitiveHashing(self, colName, blockSize=6, method = "levenshtein", threshold = 0.81):
