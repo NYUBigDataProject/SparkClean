@@ -12,10 +12,14 @@
 ## Usage
 
 ~~~shell
-git clone https://github.com/NYUBigDataProject/SparkClean.git
-cd SparkClean
-pip3 install -r requirements.txt
-pyspark
+>>> git clone https://github.com/NYUBigDataProject/SparkClean.git
+>>> cd SparkClean
+>>> pip3 install -r requirements.txt
+>>> pyspark
+~~~
+
+Then in the Pyspark Shell
+~~~python
 import sparkclean
 ~~~
 
