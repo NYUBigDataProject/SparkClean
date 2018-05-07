@@ -1,6 +1,13 @@
 # SparkClean: A Scalable DataClean Library for PySpark
 
 ---
+## Requirements
+
+- Python >= 3.4
+- Apache Spark >= 2.2.0
+- PIP Dependency: textdistance, unidecode, tqdm
+
+---
 
 ## Architecture
 
