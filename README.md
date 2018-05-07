@@ -4,7 +4,7 @@
 
 ## Architecture
 
-1. **Transformer**: Transform and Break linage
+1. **Transformer**: Transform DataFrame and Break linage
 2. **Deduplicator**: Cluster and Remove Duplications
 3. **OutlierDetector**: Find the outliers
 4. **IntegrityConstraint Corrector**: Check Integrity Constraints
