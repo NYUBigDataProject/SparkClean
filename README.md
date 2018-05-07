@@ -9,13 +9,24 @@
 
 ---
 
+## Usage
+
+~~~shell
+git clone https://github.com/NYUBigDataProject/SparkClean.git
+cd SparkClean
+pip3 install -r requirements.txt
+pyspark
+import sparkclean
+~~~
+
+---
+
 ## Architecture
 
 1. **Transformer**: Transform DataFrame and Break linage
 2. **Deduplicator**: Cluster and Remove Duplications
 3. **OutlierDetector**: Find the outliers
 4. **IntegrityConstraint Corrector**: Check Integrity Constraints
-
 
 ---
 
