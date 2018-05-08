@@ -38,7 +38,7 @@ import sparkclean
 
 Transform and Break linage
 
-1. Originally from Optimus. Fixed codes for fitting Python3.4
+1. Originally from [Optimus](https://github.com/ironmussa/Optimus). Fixed it for fitting Python3.4
 2. Use checkpoints for breaking lineage
 3. Provide lots of useful functions
 
