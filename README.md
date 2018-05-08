@@ -484,7 +484,7 @@ Around 0.44 of rows are outliers.
 ![](https://s3.amazonaws.com/sparkclean-test/scVSrefince.png)
 
 ---
-## Optimizationed Transformations 
+## Optimized Transformations 
 
 - 136 MB File, 372415 rows, fix clustering on one column
 - Both on AWS 20-core-cluster
