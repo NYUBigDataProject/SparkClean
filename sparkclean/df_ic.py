@@ -23,6 +23,7 @@ class ICViolationCorrector:
     def parse_ic(self, path):
         # Restrict to rules that are defined in only one table
         ic_dict = json.load(open(path))
+        # Check input format
         assert(len(ic_dict.keys()) == 1 and list(ic_dict.keys())[0] == 'rules') \
                    ,'Invalid ic input'
         self.number = len(ic_dict['rules'])
@@ -36,7 +37,6 @@ class ICViolationCorrector:
                     self.rules[type].append(value)
         except:
             print("Parse error?!")
-
         for type, valueList in self.rules.items():
             if type == 'fd':
                 for value in valueList:
@@ -44,7 +44,6 @@ class ICViolationCorrector:
                     lhs_attrs = LHS.split(',')
                     for index, attr in enumerate(lhs_attrs):
                         lhs_attrs[index] = attr.strip()
-                    # print(lhs_attrs)
                     rhs_attrs = RHS.split(',')
                     for index, attr in enumerate(rhs_attrs):
                         rhs_attrs[index] = attr.strip()
@@ -55,7 +54,6 @@ class ICViolationCorrector:
                         self.rhs_attrs.append(rhs_attrs)
                     if attrs not in self.attrs:
                         self.attrs.append(attrs)
-
         return self
 
     def check_violations(self):
@@ -79,11 +77,8 @@ class ICViolationCorrector:
                     self.vio_dict[x].append(i)
                 else:
                     self.vio_dict[x] = [i]
-
-
             if 't_identifier' in self.attrs[i]:
                 self.attrs[i].remove('t_identifier')
-
             self.violation_counts[i] = violation_rows.drop('t_identifier').groupBy(self.attrs[i]).count().orderBy(self.lhs_attrs[i])
         return self
 
@@ -93,9 +88,6 @@ class ICViolationCorrector:
             print(self.lhs_attrs[i],' | ', self.rhs_attrs[i])
             self.violation_counts[i].show(self.violation_counts[i].count())
 
-    # def delete_violation(self): which pair of violation? intersect tuples of multiple
-    # violations, interaction?
-
     # def roll_back(self):
     #     self.transformer.replace_sub_df(self.value_max_changes, self.value_min_changes)
 
@@ -104,8 +96,6 @@ class ICViolationCorrector:
             num_index = len(self.lhs_attrs)
             for index in range(0, num_index):
                 keys = self.violation_counts[index].select(self.lhs_attrs[index]).distinct().collect()
-                # print(keys)
-
                 for i in range(0, len(keys)):
                     rhs_values = self.violation_counts[index]
                     for j, c in enumerate(self.lhs_attrs[index]):
@@ -116,12 +106,12 @@ class ICViolationCorrector:
                         print('This violation cannot be fixed by single_fd_greedy rule')
                         rhs_values.show()
                         continue
+                    # Values more likely to be flawed
                     self.value_min_changes = rhs_values.where(col('count') == min_changes). \
                                                         drop(col('count'))
-                                                        
+                    # Values less likely to be flawed                                  
                     self.value_max_changes = rhs_values.where(col('count') == max_changes). \
-                                                        drop(col('count'))
-                                                      
+                                                        drop(col('count'))                                                 
                     print("Modify:")
                     self.value_min_changes.show(self.value_min_changes.count())
                     print("To:")
@@ -139,6 +129,7 @@ class ICViolationCorrector:
                     for i in range(0, len_vio_fds-1):
                         for j in range(i+1, len_vio_fds):
                             base = set(self.rhs_attrs[vio_fds[i]])
+                            # Find intersected fields of rules 
                             intersection = list(base.intersection(set(self.rhs_attrs[vio_fds[j]])))
 
                             if len(intersection) > 0:
