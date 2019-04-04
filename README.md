@@ -1,6 +1,7 @@
 # SparkClean: A Scalable DataClean Library for PySpark
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)][![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) 
+[![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
 
 ---
 ## Requirements
